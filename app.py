@@ -6,34 +6,44 @@ import os
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
-# ====================================================
+# -------------------------------
 # Load or Train Models
-# ====================================================
+# -------------------------------
 def load_or_train_models():
-    if os.path.exists("linear_model.pkl") and os.path.exists("poly_model.pkl") and os.path.exists("poly_transformer.pkl"):
+    if (
+        os.path.exists("linear_model.pkl")
+        and os.path.exists("poly_model.pkl")
+        and os.path.exists("poly_transformer.pkl")
+    ):
         with open("linear_model.pkl", "rb") as f:
             linear_model = pickle.load(f)
         with open("poly_model.pkl", "rb") as f:
             poly_model = pickle.load(f)
         with open("poly_transformer.pkl", "rb") as f:
             poly_transformer = pickle.load(f)
-        return linear_model, poly_model, poly_transformer, None  # no need to return columns
+        return linear_model, poly_model, poly_transformer, None
     else:
         # Load dataset
         df = pd.read_csv("StudentPerformanceFactors.csv")
 
-        
-        target_column = "Exam_Score"
+        # -----------------------
+        # Set your target column
+        # -----------------------
+        target_column = "Exam_Score"  # <-- change if your CSV target column is different
 
         X = df.drop(target_column, axis=1)
         y = df[target_column]
 
-        # Train linear regression
+        # Encode categorical columns automatically
+        for col in X.select_dtypes(include="object").columns:
+            X[col] = pd.factorize(X[col])[0]
+
+        # Train Linear Regression
         linear_model = LinearRegression().fit(X, y)
 
-        # Train polynomial regression
-        poly = PolynomialFeatures(degree=2)
-        X_poly = poly.fit_transform(X)
+        # Train Polynomial Regression
+        poly_transformer = PolynomialFeatures(degree=2)
+        X_poly = poly_transformer.fit_transform(X)
         poly_model = LinearRegression().fit(X_poly, y)
 
         # Save models
@@ -42,37 +52,44 @@ def load_or_train_models():
         with open("poly_model.pkl", "wb") as f:
             pickle.dump(poly_model, f)
         with open("poly_transformer.pkl", "wb") as f:
-            pickle.dump(poly, f)
+            pickle.dump(poly_transformer, f)
 
-        return linear_model, poly_model, poly, list(X.columns)
+        return linear_model, poly_model, poly_transformer, list(X.columns)
 
 
-# ====================================================
-# Streamlit App
-# ====================================================
-st.title("🎓 Student Performance Predictor")
-
-st.write("Enter student details (like in the dataset) to predict their performance.")
-
-# Load or train models
+# -------------------------------
+# Load Models
+# -------------------------------
 linear_model, poly_model, poly_transformer, columns = load_or_train_models()
 
-# If columns weren’t returned (because models already exist), reload dataset to get column names
+# If columns are not returned, get them from CSV
 if columns is None:
     df = pd.read_csv("StudentPerformanceFactors.csv")
-    target_column = "PerformanceIndex"  
+    target_column = "Exam_Score"
     columns = list(df.drop(target_column, axis=1).columns)
 
-# Create input fields dynamically
-user_data = {}
+# -------------------------------
+# Streamlit App
+# -------------------------------
+st.title("🎓 Student Performance Predictor")
+st.write("Enter student details (like in the dataset) to predict their exam score.")
+
+# Create dynamic input fields for all features
+user_input = {}
 for col in columns:
-    user_data[col] = st.number_input(f"{col}", value=0.0)
+    user_input[col] = st.text_input(f"{col}", "0")  # default as string
 
-# Convert input to DataFrame
-input_df = pd.DataFrame([user_data])
+# Convert inputs to numeric if possible
+input_df = pd.DataFrame([user_input])
+for col in input_df.columns:
+    try:
+        input_df[col] = pd.to_numeric(input_df[col])
+    except:
+        # Convert categorical text to factor codes as in training
+        input_df[col] = pd.factorize(input_df[col])[0]
 
-# Predictions
-if st.button("Predict Performance"):
+# Predict on button click
+if st.button("Predict"):
     linear_pred = linear_model.predict(input_df)[0]
     poly_pred = poly_model.predict(poly_transformer.transform(input_df))[0]
 
