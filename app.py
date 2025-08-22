@@ -111,7 +111,8 @@ if submit_button:
     left, center, right = st.columns([1,2,1])
     with center:
         st.subheader("You will get:", f"{linear_pred:.2f}")
-        #st.metric("You will get:", f"{linear_pred:.2f}")
+        st.metric("You will get:", f"{linear_pred:.2f}")
         #st.metric("Polynomial Regression Prediction", f"{poly_pred:.2f}")
+
 
 
