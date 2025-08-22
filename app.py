@@ -27,7 +27,7 @@ def load_or_train_models():
         return linear_model, poly_model, poly_transformer, columns
     else:
         df = pd.read_csv("StudentPerformanceFactors.csv")
-        target_column = "Exam_Score"  # Change if different
+        target_column = "Exam_Score"
         X = df.drop(target_column, axis=1)
         y = df[target_column]
 
@@ -35,7 +35,7 @@ def load_or_train_models():
         for col in X.select_dtypes(include="object").columns:
             X[col] = pd.factorize(X[col])[0]
 
-        columns = list(X.columns)  # Save column order
+        columns = list(X.columns)
 
         linear_model = LinearRegression().fit(X, y)
         poly_transformer = PolynomialFeatures(degree=2)
@@ -67,26 +67,29 @@ st.title("🎓 Scholar Score Predictor")
 st.write("Predict student exam scores based on various performance factors.")
 
 # -------------------------------
-# Input Form (Vertical, Numbered)
+# Input Form (Centered & Narrow)
 # -------------------------------
 numeric_cols = X.select_dtypes(exclude="object").columns.tolist()
 categorical_cols = X.select_dtypes(include="object").columns.tolist()
 
-with st.form(key="input_form"):
-    st.subheader("📥 Enter Student Details")
-    
-    user_input = {}
-    # Maintain order based on CSV and number inputs
-    for i, col in enumerate(columns, start=1):
-        if col in numeric_cols:
-            min_val, max_val = int(X[col].min()), int(X[col].max())
-            mean_val = int(X[col].mean())
-            user_input[col] = st.slider(f"{i}. {col}", min_val, max_val, mean_val)
-        elif col in categorical_cols:
-            options = X[col].unique().tolist()
-            user_input[col] = st.selectbox(f"{i}. {col}", options)
+# Create layout with 3 columns (left spacer, center form, right spacer)
+left, center, right = st.columns([1,2,1])
 
-    submit_button = st.form_submit_button(label="Predict")
+with center:
+    with st.form(key="input_form"):
+        st.subheader("📥 Enter Student Details")
+        
+        user_input = {}
+        for i, col in enumerate(columns, start=1):
+            if col in numeric_cols:
+                min_val, max_val = int(X[col].min()), int(X[col].max())
+                mean_val = int(X[col].mean())
+                user_input[col] = st.slider(f"{i}. {col}", min_val, max_val, mean_val)
+            elif col in categorical_cols:
+                options = X[col].unique().tolist()
+                user_input[col] = st.selectbox(f"{i}. {col}", options)
+
+        submit_button = st.form_submit_button(label="Predict")
 
 # -------------------------------
 # Make Predictions
@@ -104,6 +107,9 @@ if submit_button:
     linear_pred = linear_model.predict(input_df)[0]
     poly_pred = poly_model.predict(poly_transformer.transform(input_df))[0]
 
-    st.subheader("📊 Predictions")
-    st.metric("You will get :", f"{linear_pred:.2f}")
-    #st.metric("Polynomial Regression Prediction", f"{poly_pred:.2f}")
+    # Center the prediction results too
+    left, center, right = st.columns([1,2,1])
+    with center:
+        st.subheader("📊 Predictions")
+        st.metric("You will get:", f"{linear_pred:.2f}")
+        #st.metric("Polynomial Regression Prediction", f"{poly_pred:.2f}")
