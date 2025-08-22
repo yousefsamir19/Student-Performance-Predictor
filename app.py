@@ -67,26 +67,24 @@ st.title("🎓 Scholar Score Predictor")
 st.write("Predict student exam scores based on various performance factors.")
 
 # -------------------------------
-# Input Form in Columns
+# Input Form (Vertical, Numbered)
 # -------------------------------
 numeric_cols = X.select_dtypes(exclude="object").columns.tolist()
 categorical_cols = X.select_dtypes(include="object").columns.tolist()
 
 with st.form(key="input_form"):
     st.subheader("📥 Enter Student Details")
-    col1, col2 = st.columns(2)
-
+    
     user_input = {}
-    # Maintain order based on CSV
-    for i, col in enumerate(columns):
-        slider_col = col1 if i % 2 == 0 else col2
+    # Maintain order based on CSV and number inputs
+    for i, col in enumerate(columns, start=1):
         if col in numeric_cols:
             min_val, max_val = int(X[col].min()), int(X[col].max())
             mean_val = int(X[col].mean())
-            user_input[col] = slider_col.slider(f"{col}", min_val, max_val, mean_val)
+            user_input[col] = st.slider(f"{i}. {col}", min_val, max_val, mean_val)
         elif col in categorical_cols:
             options = X[col].unique().tolist()
-            user_input[col] = slider_col.selectbox(f"{col}", options)
+            user_input[col] = st.selectbox(f"{i}. {col}", options)
 
     submit_button = st.form_submit_button(label="Predict")
 
