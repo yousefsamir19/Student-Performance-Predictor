@@ -4,42 +4,36 @@ import numpy as np
 import pickle
 import os
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures, LabelEncoder
+from sklearn.preprocessing import PolynomialFeatures
 
-# -------------------------------
-# Function to load or train models
-# -------------------------------
+# ====================================================
+# Load or Train Models
+# ====================================================
 def load_or_train_models():
-    if (
-        os.path.exists("linear_model.pkl")
-        and os.path.exists("poly_model.pkl")
-        and os.path.exists("poly_transformer.pkl")
-    ):
+    if os.path.exists("linear_model.pkl") and os.path.exists("poly_model.pkl") and os.path.exists("poly_transformer.pkl"):
         with open("linear_model.pkl", "rb") as f:
             linear_model = pickle.load(f)
         with open("poly_model.pkl", "rb") as f:
             poly_model = pickle.load(f)
         with open("poly_transformer.pkl", "rb") as f:
             poly_transformer = pickle.load(f)
+        return linear_model, poly_model, poly_transformer, None  # no need to return columns
     else:
+        # Load dataset
         df = pd.read_csv("StudentPerformanceFactors.csv")
 
-        # Encode categorical features
-        label_encoders = {}
-        for col in df.select_dtypes(include="object").columns:
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col])
-            label_encoders[col] = le
+        
+        target_column = "Exam_Score"
 
-        X = df.drop("PerformanceIndex", axis=1)
-        y = df["PerformanceIndex"]
+        X = df.drop(target_column, axis=1)
+        y = df[target_column]
 
         # Train linear regression
         linear_model = LinearRegression().fit(X, y)
 
         # Train polynomial regression
-        poly_transformer = PolynomialFeatures(degree=2)
-        X_poly = poly_transformer.fit_transform(X)
+        poly = PolynomialFeatures(degree=2)
+        X_poly = poly.fit_transform(X)
         poly_model = LinearRegression().fit(X_poly, y)
 
         # Save models
@@ -48,45 +42,39 @@ def load_or_train_models():
         with open("poly_model.pkl", "wb") as f:
             pickle.dump(poly_model, f)
         with open("poly_transformer.pkl", "wb") as f:
-            pickle.dump(poly_transformer, f)
+            pickle.dump(poly, f)
 
-    return linear_model, poly_model, poly_transformer
+        return linear_model, poly_model, poly, list(X.columns)
 
 
-# -------------------------------
-# Load models
-# -------------------------------
-linear_model, poly_model, poly_transformer = load_or_train_models()
+# ====================================================
+# Streamlit App
+# ====================================================
+st.title("🎓 Student Performance Predictor")
 
-# -------------------------------
-# Streamlit UI
-# -------------------------------
-st.title("🎓 Scholar Score Predictor")
-st.write("Predict student performance index based on input factors.")
+st.write("Enter student details (like in the dataset) to predict their performance.")
 
-# Example input fields (you can adjust based on dataset features)
-hours_studied = st.number_input("Hours Studied", min_value=0, max_value=24, value=5)
-attendance = st.slider("Attendance (%)", min_value=0, max_value=100, value=75)
-sleep_hours = st.number_input("Sleep Hours", min_value=0, max_value=12, value=7)
-previous_scores = st.number_input("Previous Scores", min_value=0, max_value=100, value=70)
-motivation = st.slider("Motivation Level (1-10)", min_value=1, max_value=10, value=5)
+# Load or train models
+linear_model, poly_model, poly_transformer, columns = load_or_train_models()
 
-# Create input DataFrame
-input_data = pd.DataFrame(
-    {
-        "Hours_Studied": [hours_studied],
-        "Attendance": [attendance],
-        "Sleep_Hours": [sleep_hours],
-        "Previous_Scores": [previous_scores],
-        "Motivation_Level": [motivation],
-    }
-)
+# If columns weren’t returned (because models already exist), reload dataset to get column names
+if columns is None:
+    df = pd.read_csv("StudentPerformanceFactors.csv")
+    target_column = "PerformanceIndex"  
+    columns = list(df.drop(target_column, axis=1).columns)
+
+# Create input fields dynamically
+user_data = {}
+for col in columns:
+    user_data[col] = st.number_input(f"{col}", value=0.0)
+
+# Convert input to DataFrame
+input_df = pd.DataFrame([user_data])
 
 # Predictions
 if st.button("Predict Performance"):
-    linear_pred = linear_model.predict(input_data)[0]
-    poly_pred = poly_model.predict(poly_transformer.transform(input_data))[0]
+    linear_pred = linear_model.predict(input_df)[0]
+    poly_pred = poly_model.predict(poly_transformer.transform(input_df))[0]
 
-    st.subheader("📊 Predictions")
-    st.write(f"**Linear Regression Prediction:** {linear_pred:.2f}")
-    st.write(f"**Polynomial Regression Prediction:** {poly_pred:.2f}")
+    st.success(f"📊 Linear Regression Prediction: {linear_pred:.2f}")
+    st.success(f"📈 Polynomial Regression Prediction: {poly_pred:.2f}")
