@@ -110,9 +110,11 @@ if submit_button:
     # Center the prediction results too
     left, center, right = st.columns([1,2,1])
     with center:
-        st.subheader("You will get:")
-        st.metric("",f"{linear_pred:.2f}")
+        #st.subheader("You will get:")
+        #st.metric("",f"{linear_pred:.2f}")
+        st.write(f"✅ In the end, you will get the score around *{linear_pred:.2f}*")
         #st.metric("Polynomial Regression Prediction", f"{poly_pred:.2f}")
+
 
 
 
