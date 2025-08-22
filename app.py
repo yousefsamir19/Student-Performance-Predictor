@@ -14,6 +14,7 @@ def load_or_train_models():
         os.path.exists("linear_model.pkl")
         and os.path.exists("poly_model.pkl")
         and os.path.exists("poly_transformer.pkl")
+        and os.path.exists("columns.pkl")
     ):
         with open("linear_model.pkl", "rb") as f:
             linear_model = pickle.load(f)
@@ -21,7 +22,9 @@ def load_or_train_models():
             poly_model = pickle.load(f)
         with open("poly_transformer.pkl", "rb") as f:
             poly_transformer = pickle.load(f)
-        return linear_model, poly_model, poly_transformer, None
+        with open("columns.pkl", "rb") as f:
+            columns = pickle.load(f)
+        return linear_model, poly_model, poly_transformer, columns
     else:
         df = pd.read_csv("StudentPerformanceFactors.csv")
         target_column = "Exam_Score"  # Change if different
@@ -32,32 +35,31 @@ def load_or_train_models():
         for col in X.select_dtypes(include="object").columns:
             X[col] = pd.factorize(X[col])[0]
 
+        columns = list(X.columns)  # Save column order
+
         linear_model = LinearRegression().fit(X, y)
         poly_transformer = PolynomialFeatures(degree=2)
         X_poly = poly_transformer.fit_transform(X)
         poly_model = LinearRegression().fit(X_poly, y)
 
-        # Save models
+        # Save models and columns
         with open("linear_model.pkl", "wb") as f:
             pickle.dump(linear_model, f)
         with open("poly_model.pkl", "wb") as f:
             pickle.dump(poly_model, f)
         with open("poly_transformer.pkl", "wb") as f:
             pickle.dump(poly_transformer, f)
+        with open("columns.pkl", "wb") as f:
+            pickle.dump(columns, f)
 
-        return linear_model, poly_model, poly_transformer, list(X.columns)
+        return linear_model, poly_model, poly_transformer, columns
 
 # -------------------------------
 # Load Models
 # -------------------------------
 linear_model, poly_model, poly_transformer, columns = load_or_train_models()
-
-if columns is None:
-    df = pd.read_csv("StudentPerformanceFactors.csv")
-    target_column = "Exam_Score"
-    columns = list(df.drop(target_column, axis=1).columns)
-
 df = pd.read_csv("StudentPerformanceFactors.csv")
+target_column = "Exam_Score"
 X = df.drop(target_column, axis=1)
 
 st.set_page_config(page_title="Scholar Score Predictor", page_icon="🎓", layout="wide")
@@ -75,16 +77,16 @@ with st.form(key="input_form"):
     col1, col2 = st.columns(2)
 
     user_input = {}
-    for i, col in enumerate(numeric_cols):
+    # Maintain order based on CSV
+    for i, col in enumerate(columns):
         slider_col = col1 if i % 2 == 0 else col2
-        min_val, max_val = int(X[col].min()), int(X[col].max())
-        mean_val = int(X[col].mean())
-        user_input[col] = slider_col.slider(f"{col}", min_val, max_val, mean_val)
-
-    for i, col in enumerate(categorical_cols):
-        dropdown_col = col1 if i % 2 == 0 else col2
-        options = X[col].unique().tolist()
-        user_input[col] = dropdown_col.selectbox(f"{col}", options)
+        if col in numeric_cols:
+            min_val, max_val = int(X[col].min()), int(X[col].max())
+            mean_val = int(X[col].mean())
+            user_input[col] = slider_col.slider(f"{col}", min_val, max_val, mean_val)
+        elif col in categorical_cols:
+            options = X[col].unique().tolist()
+            user_input[col] = slider_col.selectbox(f"{col}", options)
 
     submit_button = st.form_submit_button(label="Predict")
 
@@ -98,9 +100,12 @@ if submit_button:
     for col in input_df.select_dtypes(include="object").columns:
         input_df[col] = pd.factorize(input_df[col])[0]
 
+    # Reorder columns to match training
+    input_df = input_df[columns]
+
     linear_pred = linear_model.predict(input_df)[0]
     poly_pred = poly_model.predict(poly_transformer.transform(input_df))[0]
 
     st.subheader("📊 Predictions")
-    st.metric("Prediction", f"{linear_pred:.2f}")
+    st.metric("You will get :", f"{linear_pred:.2f}")
     #st.metric("Polynomial Regression Prediction", f"{poly_pred:.2f}")
