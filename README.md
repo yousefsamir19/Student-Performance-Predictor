@@ -50,4 +50,12 @@ Metrics used:
 - Distribution of exam scores.  
 - Exam scores vs study hours.  
 - Actual vs Predicted exam scores.  
-- Residual error distribution.  
+- Residual error distribution.
+
+## 🚀 Check It Out
+Try the live app here 👉 [🎓 Scholar Score Predictor](https://your-app-link-here.streamlit.app)
+
+## 🚀 Live Demo
+[![Streamlit App](https://img.shields.io/badge/Streamlit-App-brightgreen?logo=streamlit)](https://your-app-link-here.streamlit.app)
+
+Click the badge above to try the app!
