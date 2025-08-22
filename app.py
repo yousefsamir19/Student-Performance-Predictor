@@ -97,5 +97,6 @@ if st.button("Predict"):
     linear_pred = linear_model.predict(input_df)[0]
     poly_pred = poly_model.predict(poly_transformer.transform(input_df))[0]
 
-    st.success(f"📊 Linear Regression Prediction: {linear_pred:.2f}")
-    st.success(f"📈 Polynomial Regression Prediction: {poly_pred:.2f}")
+    st.success(f"Prediction: {linear_pred:.2f}")
+    #st.success(f"📈 Polynomial Regression Prediction: {poly_pred:.2f}")
+
