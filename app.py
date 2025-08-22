@@ -23,25 +23,19 @@ def load_or_train_models():
             poly_transformer = pickle.load(f)
         return linear_model, poly_model, poly_transformer, None
     else:
-        # Load dataset
         df = pd.read_csv("StudentPerformanceFactors.csv")
 
-        # -----------------------
-        # Set your target column
-        # -----------------------
-        target_column = "Exam_Score"  # <-- change if your CSV target column is different
-
+        target_column = "Exam_Score"  # change if different
         X = df.drop(target_column, axis=1)
         y = df[target_column]
 
         # Encode categorical columns automatically
-        for col in X.select_dtypes(include="object").columns:
+        categorical_cols = X.select_dtypes(include="object").columns
+        for col in categorical_cols:
             X[col] = pd.factorize(X[col])[0]
 
-        # Train Linear Regression
         linear_model = LinearRegression().fit(X, y)
 
-        # Train Polynomial Regression
         poly_transformer = PolynomialFeatures(degree=2)
         X_poly = poly_transformer.fit_transform(X)
         poly_model = LinearRegression().fit(X_poly, y)
@@ -62,31 +56,41 @@ def load_or_train_models():
 # -------------------------------
 linear_model, poly_model, poly_transformer, columns = load_or_train_models()
 
-# If columns are not returned, get them from CSV
+# Get feature columns if not returned
 if columns is None:
     df = pd.read_csv("StudentPerformanceFactors.csv")
-    target_column = "Exam_Score"
+    target_column = "Exam_Score"  # change if different
     columns = list(df.drop(target_column, axis=1).columns)
 
 # -------------------------------
-# Streamlit App
+# Streamlit UI
 # -------------------------------
 st.title("🎓 Student Performance Predictor")
-st.write("Enter student details (like in the dataset) to predict their exam score.")
+st.write("Enter student details to predict their exam score.")
 
-# Create dynamic input fields for all features
+# Load dataset to get unique values for categorical features
+df = pd.read_csv("StudentPerformanceFactors.csv")
+X = df.drop(target_column, axis=1)
+
 user_input = {}
 for col in columns:
-    user_input[col] = st.text_input(f"{col}", "0")  # default as string
+    if X[col].dtype == "object":
+        # Categorical → dropdown
+        options = X[col].unique().tolist()
+        user_input[col] = st.selectbox(f"{col}", options)
+    else:
+        # Numeric → slider
+        min_val = float(X[col].min())
+        max_val = float(X[col].max())
+        mean_val = float(X[col].mean())
+        user_input[col] = st.slider(f"{col}", min_val, max_val, mean_val)
 
-# Convert inputs to numeric if possible
+# Convert input to DataFrame
 input_df = pd.DataFrame([user_input])
-for col in input_df.columns:
-    try:
-        input_df[col] = pd.to_numeric(input_df[col])
-    except:
-        # Convert categorical text to factor codes as in training
-        input_df[col] = pd.factorize(input_df[col])[0]
+
+# Encode categorical columns like training
+for col in input_df.select_dtypes(include="object").columns:
+    input_df[col] = pd.factorize(input_df[col])[0]
 
 # Predict on button click
 if st.button("Predict"):
