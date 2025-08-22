@@ -77,8 +77,8 @@ with st.form(key="input_form"):
     user_input = {}
     for i, col in enumerate(numeric_cols):
         slider_col = col1 if i % 2 == 0 else col2
-        min_val, max_val = float(X[col].min()), float(X[col].max())
-        mean_val = float(X[col].mean())
+        min_val, max_val = int(X[col].min()), int(X[col].max())
+        mean_val = int(X[col].mean())
         user_input[col] = slider_col.slider(f"{col}", min_val, max_val, mean_val)
 
     for i, col in enumerate(categorical_cols):
