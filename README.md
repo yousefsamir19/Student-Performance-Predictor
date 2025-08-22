@@ -53,9 +53,4 @@ Metrics used:
 - Residual error distribution.
 
 ## 🚀 Check It Out
-Try the live app here 👉 [🎓 Scholar Score Predictor](https://your-app-link-here.streamlit.app)
-
-## 🚀 Live Demo
-[![Streamlit App](https://img.shields.io/badge/Streamlit-App-brightgreen?logo=streamlit)](https://your-app-link-here.streamlit.app)
-
-Click the badge above to try the app!
+Try the live app here 👉 [🎓 Scholar Score Predictor](https://scholar-score-predictor.streamlit.app/#65.22)
